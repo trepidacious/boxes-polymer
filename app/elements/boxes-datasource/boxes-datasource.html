@@ -50,16 +50,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return (typeof x === 'object') && (x !== null)
         },
 
-        // This one accepts integers or strings parsing to integers
-        // //http://goo.gl/PeU8h8
-        // _isInt: function(value) {
-        //   if (isNaN(value)) {
-        //     return false
-        //   }
-        //   var x = parseFloat(value);
-        //   return (x | 0) === x
-        // },
-
         _isInt: Number.isInteger || function(value) {
           return typeof value === "number" && 
             isFinite(value) && 
