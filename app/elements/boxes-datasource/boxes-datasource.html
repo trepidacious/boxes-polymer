@@ -73,24 +73,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         },
  
-        _replaceProperty: function(obj, key, value, id) {
+        _replaceProperty: function(obj, key, initialValue, id) {
           //Delete the original property
           delete obj[key];
-          
-          //Make a new 'private' property we will use to back the getter/setter
-          var privateKey = '_' + key + '_value';
-          obj[privateKey] = value;
+
+          //var to back the getter/setter property
+          var value = initialValue;
           
           //Make the new property with getter/setter
           Object.defineProperty(obj, key, {
             configurable: false,
             enumerable: true,
             set: function(x) {
-              console.log(key + '@' + id + ": " + this[privateKey] + "->" + x);
-              this[privateKey] = x; 
+              //TODO this would send edit request to server
+              console.log(key + '@' + id + ": " + value + "->" + x);
+              value = x; 
             },
             get: function() { 
-              return this[privateKey]; 
+              return value; 
             }
           });
         },
