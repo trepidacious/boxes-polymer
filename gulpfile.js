@@ -27,6 +27,7 @@ var historyApiFallback = require('connect-history-api-fallback');
 var packageJson = require('./package.json');
 var crypto = require('crypto');
 var ensureFiles = require('./tasks/ensure-files.js');
+var proxyMiddleware = require('http-proxy-middleware');
 
 // var ghPages = require('gulp-gh-pages');
 
@@ -215,10 +216,22 @@ gulp.task('clean', function() {
 
 // Watch files for changes & reload
 gulp.task('serve', ['styles'], function() {
+  
+  // configure proxy middleware
+  // context: '/' will proxy all requests
+  //     use: '/api' to proxy request when path starts with '/api'
+  var proxy = proxyMiddleware('/api', {
+    target: 'http://localhost:8080',
+    changeOrigin: true   // for vhosted sites, changes host header to match to target's host
+  });
+
   browserSync({
     port: 5000,
     notify: false,
     logPrefix: 'PSK',
+    //Disable ghost mode - makes it confusing to see whether
+    //boxes sync is working!
+    ghostMode: false,
     snippetOptions: {
       rule: {
         match: '<span id="browser-sync-binding"></span>',

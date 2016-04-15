@@ -10,22 +10,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../boxes-websocket/websocketjs-import.html">
 
 <dom-module id="boxes-datasource">
   <template>
     <style>
       :host {
-        display: block;
-      }
-
-      span {
-        @apply(--paper-font-body1);
+        display: none;
       }
     </style>
-
-    <div>a = {{data.a}}</div>
-    <div>b = {{data.b}}</div>
-  
   </template>
 
   <script>
@@ -34,12 +27,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       Polymer({
         is: 'boxes-datasource',
-
+        
+        socket: null,
+        revisionIndex: -1,
+        pingIntervalMillis: 10000,
+        
         properties: {
-          data: {
+          document: {
             type: Object,
             notify: true
+          },
+          url: {
+            type: String
           }
+        },
+        
+        _wsSend: function (message) {
+          this.socket.send(message);
+        },
+        
+        _wsClose: function () {
+          this.socket.close();
         },
 
         _isArray: function(x) {
@@ -80,14 +88,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //var to back the getter/setter property
           var value = initialValue;
           
+          var component = this;
+          
           //Make the new property with getter/setter
           Object.defineProperty(obj, key, {
             configurable: false,
             enumerable: true,
             set: function(x) {
-              //TODO this would send edit request to server
-              console.log(key + '@' + id + ": " + value + "->" + x);
               value = x; 
+              component._boxChanged(key, id, value, x)
             },
             get: function() { 
               return value; 
@@ -112,16 +121,53 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         },
 
-        ready: function() {
-          console.log('data source ready, data was ' + JSON.stringify(this.data) + ', we will now try to set it.')
-          var newData = {a:'aVal', _a_id:123, b:'bVal', _b_id:234, c:[{d:'dVal', _d_id:456}]};
-          this._traverse(newData);
-          console.log(newData);
+        onError: function (error) {
+          this.fire('onerror', error);
+        },
+        
+        onOpen: function (event) {
+          this.fire('onopen');
+        },
+        
+        onClose: function (error) {
+          console.log('boxes-datasource closed');
+          //TODO reopen websocket. Set property
+          //to show disconnected while reconnecting?
+          this.fire('onclose', error);
+        },
+        
+        onMessage: function (event) {
+          console.log('message: ' + event.data);
 
-          this.data = newData;
+          var msg = JSON.parse(event.data)
+
+          this.revision = msg.revisionIndex 
           
-          console.log('data source ready, data is now ' + JSON.stringify(this.data));
+          var newDocument = msg.document
+          this._traverse(newDocument);
+          this.document = newDocument;
+        },
 
+        _boxChanged: function(key, id, oldValue, newValue) {
+          console.log('_boxChanged: ' + key + '@' + id + ": " + oldValue + "->" + newValue);
+          this._wsSend(JSON.stringify({"revisionIndex": this.revisionIndex, "boxId": id, "boxContents": newValue}));
+        },
+
+        _ping: function() {
+          this._wsSend('{}');
+          setTimeout(this._ping.bind(this), this.pingIntervalMillis);
+        },
+
+        ready: function() {
+          console.log("boxes-datasource ready");
+          this.socket = new WebSocket(this.url);
+          this.socket.onerror = this.onError.bind(this);
+          this.socket.onopen = this.onOpen.bind(this);
+          this.socket.onmessage = this.onMessage.bind(this);
+          this.socket.onclose = this.onClose.bind(this);
+          
+          //Keep the socket alive - ping regularly
+          setTimeout(this._ping.bind(this), this.pingIntervalMillis);          
         }
       });
     })();
