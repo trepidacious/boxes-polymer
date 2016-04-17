@@ -13,10 +13,8 @@
           -ms-user-select: none;
       }
   	</style>
-    <div style="width:100%">
-        <div>
-            <canvas id="canvas"></canvas>
-        </div>
+    <div>
+        <canvas id="canvas"></canvas>
     </div>
 	</template>
 
@@ -28,35 +26,205 @@
         chart: null,
         
         properties: {
+          xAxis: {
+            type: String,
+            value: "x",
+            observer: "_xChanged" 
+          },
+          yAxis: {
+            type: String,
+            value: "y",
+            observer: "_yChanged" 
+          },
+          title: {
+            type: String,
+            value: "Title",
+            observer: "_titleChanged" 
+          },
+          data: {
+            type: Object,
+            value: { datasets: [] },
+            observer: "_dataChanged"
+          }          
         },
         
+        _xChanged: function(newValue, oldValue) {
+          this.async(function () {
+            if (this.chart) {
+              this.chart.scales['x-axis-1'].options.scaleLabel.labelString = newValue;
+              this.chart.update();
+            }
+          });
+        },
+        
+        _yChanged: function(newValue, oldValue) {
+          this.async(function () {
+            if (this.chart) {
+              this.chart.scales['y-axis-1'].options.scaleLabel.labelString = newValue;
+              this.chart.update();
+            }
+          });
+        },
+        
+        _titleChanged: function(newValue, oldValue) {
+          this.async(function () {
+            if (this.chart) {
+              console.log(this.chart);
+              this.chart.titleBlock.options.text = newValue;
+              
+              this.chart.data.datasets = [
+                  {
+                    label: "Linear",
+                    data: [
+                      { x: 0, y: 0},
+                      { x: 1, y: 2},
+                      { x: 2, y: 4},
+                      { x: 3, y: 6},
+                      { x: 4, y: 8},
+                      { x: 5, y: 10}
+                    ],
+                    fill: false,
+                    tension: 0,
+                    borderColor: "rgba(150, 50, 50, 1)"
+                  }, 
+                  {
+                    label: "Quadratic",
+                    data: [
+                      { x: 0, y: 0},
+                      { x: 1, y: 1},
+                      { x: 2, y: 4},
+                      { x: 3, y: 9},
+                      { x: 4, y: 16},
+                      { x: 5, y: 25}
+                    ],
+                    fill: false,
+                    tension: 0,
+                    borderColor: "rgba(50, 50, 150, 1)"
+                  }
+                ];
+              
+              this.chart.update(0);
+            }
+          });
+        },
+
+        _dataChanged: function(newValue, oldValue) {
+          this.async(function () {
+            if (this.chart) {
+              this.chart.data = newValue;
+              this.chart.update();
+            }
+          });
+        },
+
         ready: function () {     
                
           this.async(function () {
             
             var ctx = this.$.canvas.getContext("2d");
             
-            this.chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-                    datasets: [{
-                        label: '# of Votes',
-                        data: [12, 19, 3, 5, 2, 3]
-                    }]
+            var scatterChartData = {
+                datasets: []
+            };
+            
+            // var scatterChartData = {
+            //     datasets: [
+            //       {
+            //         label: "Linear",
+            //         data: [
+            //           { x: 0, y: 0},
+            //           { x: 1, y: 2},
+            //           { x: 2, y: 4},
+            //           { x: 3, y: 6},
+            //           { x: 4, y: 8},
+            //           { x: 5, y: 10}
+            //         ],
+            //         fill: false,
+            //         tension: 0,
+            //         borderColor: "rgba(150, 50, 50, 1)"
+            //       }, 
+            //       {
+            //         label: "Quadratic",
+            //         data: [
+            //           { x: 0, y: 0},
+            //           { x: 1, y: 1},
+            //           { x: 2, y: 4},
+            //           { x: 3, y: 9},
+            //           { x: 4, y: 16},
+            //           { x: 5, y: 25}
+            //         ],
+            //         fill: false,
+            //         tension: 0,
+            //         borderColor: "rgba(50, 50, 150, 1)"
+            //       }
+            //     ]
+            // };
+            
+            // var scatterChartData = {
+            //     datasets: []
+            // };
+            // 
+            // for (var i = 0; i < 96; i++) {
+            //   var dataset = {
+            //     // label: "Series " + i,
+            //     data: [],
+            //     fill: false,
+            //     tension: 0,
+            //     borderColor: "rgba(50, 50, 150, 1)"
+            //   };
+            //   
+            //   for (var j = 0; j < 40; j++) {
+            //     dataset.data.push({ x: 50 + j/10.0, y: 10 + j/5.0 + i});
+            //   }
+            //   
+            //   scatterChartData.datasets.push(dataset);
+            // }
+            
+
+            this.chart = Chart.Scatter(ctx, {
+              data: scatterChartData,
+              options: {
+                title: {
+                  display: true,
+                  text: this.title
                 },
-                options: {
-                    scales: {
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero:true
-                            }
-                        }]
+                elements: {
+                  //No points - radius 0
+                  point: {
+                    radius: 0
+                  },
+                  line: {
+                    borderWidth: 1
+                  }
+                },
+                legend: {
+                  display: false
+                },
+                scales: {
+                  xAxes: [{
+                    position: 'bottom',
+                    scaleLabel: {
+                      display: true,
+                      labelString: this.xAxis
+                    },
+                    //"Zoom" by changing axis scale
+                    // ticks: {
+                    //   min: 60,
+                    //   max: 72 
+                    // }
+                  }],
+                  yAxes: [{
+                    position: 'left',
+                    scaleLabel: {
+                      display: true,
+                      labelString: this.yAxis
                     }
+                  }]
                 }
+              }
             });
 
-          }, null, 0);
+          });
           
         }
         
